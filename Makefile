@@ -47,11 +47,12 @@ clean-deps:
 	$(if $(wildcard deps/), $(MAKE) -C deps/ clean)
 	$(if $(wildcard deps/), rm -r deps/)
 
-.erlang.mk: ERLANGMK_VERSION = '2.0.0-pre.2'
+.erlang.mk: ERLANGMK_VERSION = 'master'
 .erlang.mk:
-	wget 'https://raw.githubusercontent.com/ninenines/erlang.mk/$(ERLANGMK_VERSION)/erlang.mk' -O $(ROOT)/erlang.mk
+	wget 'https://raw.githubusercontent.com/fenollp/erlang.mk/$(ERLANGMK_VERSION)/erlang.mk' -O $(ROOT)/erlang.mk
 
 deps: deps/Makefile
+	export ERLC_OPTS='-DWITH_JIFFY'
 	$(MAKE) -C deps/ all
 deps/Makefile: .erlang.mk
 	mkdir -p deps
