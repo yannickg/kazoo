@@ -28,5 +28,8 @@
 # Increase number of concurrent ports / sockets
 ##-env ERL_MAX_PORTS 4096
 
+# Disable distributed Erlang (as we're using AMQP instead)
+-no_epmd
+
 -s lager
 -s kazoo_apps_app
