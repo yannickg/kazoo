@@ -434,3 +434,7 @@ pretty_print_bytes_test_() ->
     [?_assertEqual({Bytes, Formatted}, {Bytes, kz_util:pretty_print_bytes(Bytes)})
      || {Bytes, Formatted} <- Tests
     ].
+
+normalize_account_name_test_() ->
+    [?_assertEqual(<<"testaccountname2600hz">>,kz_util:normalize_account_name(<<"∑Test-Account Name@2600hz\'!!">>))
+    ].
