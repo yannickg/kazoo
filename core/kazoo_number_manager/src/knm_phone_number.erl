@@ -58,7 +58,6 @@
 -endif.
 
 -include("knm.hrl").
--include_lib("kazoo_json/include/kazoo_json.hrl").
 
 %% Used by from_json/1
 -define(DEFAULT_FEATURES, kz_json:new()).
