@@ -24,8 +24,8 @@
         ,mem_info/0
         ]).
 
--include("include/kz_types.hrl").
--include("include/kz_databases.hrl").
+-include_lib("kazoo_types/include/kz_types.hrl").
+-include_lib("kazoo_types/include/kz_databases.hrl").
 
 -spec syslog_level(text()) -> 'ok'.
 syslog_level(Level) ->
