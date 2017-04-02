@@ -7,5 +7,6 @@
  ,{applications, [ kernel
                  , stdlib
                  , lager
+                 ,kazoo_types
                  ]}
  ]}.
