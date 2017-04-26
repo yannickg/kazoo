@@ -794,11 +794,11 @@ maybe_sync_sip_data(Context, 'user', 'true') ->
     Req = [{<<"Realm">>, Realm}
           ,{<<"Fields">>, [<<"Username">>]}
           ],
-    ReqResp = kz_amqp_worker:call(Req
-                                 ,fun kapi_registration:publish_query_req/1
-                                 ,fun kapi_registration:query_resp_v/1
-                                 ),
-    case ReqResp of
+    case kz_amqp_worker:call(Req
+                            ,fun kapi_registration:publish_query_req/1
+                            ,fun kapi_registration:query_resp_v/1
+                            )
+    of
         {'error', _E} -> lager:debug("no devices to send check sync to for realm ~s", [Realm]);
         {'timeout', _} -> lager:debug("timed out query for fetching devices for ~s", [Realm]);
         {'ok', JObj} ->

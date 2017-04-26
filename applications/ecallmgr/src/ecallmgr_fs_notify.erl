@@ -106,9 +106,7 @@ resp_to_probe(State, User, Realm) ->
 check_sync_api(JObj, _Props) ->
     'true' = kapi_switch:check_sync_v(JObj),
     kz_util:put_callid(JObj),
-    check_sync(kapi_switch:check_sync_username(JObj)
-              ,kapi_switch:check_sync_realm(JObj)
-              ).
+    check_sync(kapi_switch:check_sync_username(JObj), kapi_switch:check_sync_realm(JObj)).
 
 -spec check_sync(ne_binary(), ne_binary()) -> 'ok'.
 check_sync(Username, Realm) ->
@@ -122,8 +120,9 @@ check_sync(Username, Realm) ->
             lager:info("calling check sync on ~s for ~s@~s and contact ~s", [Node, Username, Realm, Contact]),
             case ensure_contact_user(Contact, Username, Realm) of
                 'undefined' ->
-                    lager:error("invalid contact : ~p : ~p", [Contact, Registration]);
-                Valid -> send_check_sync(Node, Username, Realm, Valid)
+                    lager:error("invalid contact: ~p : ~p", [Contact, Registration]);
+                Valid ->
+                    send_check_sync(Node, Username, Realm, Valid)
             end
     end.
 
@@ -141,7 +140,7 @@ send_check_sync(Node, Username, Realm, Contact) ->
               ,{"event-string", "check-sync"}
               ],
     Resp = freeswitch:sendevent(Node, 'NOTIFY', Headers),
-    lager:info("send check-sync to '~s@~s' via ~s: ~p", [Username, Realm, Node, Resp]).
+    lager:info("sent check-sync to '~s@~s' via ~s: ~p", [Username, Realm, Node, Resp]).
 
 -spec mwi_update(kz_json:object(), kz_proplist()) -> no_return().
 mwi_update(JObj, Props) ->

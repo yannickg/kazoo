@@ -472,14 +472,14 @@ has_all_header(Header, Prop) when is_list(Header) ->
     case has_any(Prop, Header) of
         'true' -> 'true';
         'false' ->
-            lager:debug("failed to find one of keys '~p' on API message", [Header]),
+            lager:error("failed to find one of keys '~p' on API message", [Header]),
             'false'
     end;
 has_all_header(Header, Prop) ->
     case props:is_defined(Header, Prop) of
         'true' -> 'true';
         'false' ->
-            lager:debug("failed to find key '~s' on API message", [Header]),
+            lager:error("failed to find key '~s' on API message", [Header]),
             'false'
     end.
 
