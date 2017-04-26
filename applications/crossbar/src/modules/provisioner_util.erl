@@ -802,12 +802,12 @@ maybe_sync_sip_data(Context, 'user', 'true') ->
         {'error', _E} -> lager:debug("no devices to send check sync to for realm ~s", [Realm]);
         {'timeout', _} -> lager:debug("timed out query for fetching devices for ~s", [Realm]);
         {'ok', JObj} ->
-            lists:foreach(fun(J) ->
-                                  Username = kz_json:get_value(<<"Username">>, J),
-                                  send_check_sync(Username, Realm, 'undefined')
-                          end
-                         ,kz_json:get_value(<<"Fields">>, JObj)
-                         )
+            MsgId = cb_context:req_id(Context),
+            _ = [send_check_sync(Username, Realm, MsgId)
+                 || J <- kz_json:get_value(<<"Fields">>, JObj),
+                    Username <- [kz_json:get_value(<<"Username">>, J)]
+                ],
+            'ok'
     end;
 maybe_sync_sip_data(Context, 'user', 'force') ->
     case cb_users_v2:user_devices(Context) of
@@ -824,24 +824,16 @@ maybe_sync_sip_data(Context, 'user', 'force') ->
     end.
 
 %% @private
--spec send_check_sync(api_binary(), api_binary(), api_binary()) -> 'ok'.
+-spec send_check_sync(api_ne_binary(), api_ne_binary(), ne_binary()) -> 'ok'.
 send_check_sync('undefined', _Realm, _MsgId) ->
     lager:warning("did not send check sync: username is undefined");
 send_check_sync(_Username, 'undefined', _MsgId) ->
     lager:warning("did not send check sync: realm is undefined");
 send_check_sync(Username, Realm, MsgId) ->
     lager:debug("sending check sync for ~s @ ~s", [Username, Realm]),
-    publish_check_sync(MsgId, [{<<"Realm">>, Realm}
-                              ,{<<"Username">>, Username}
-                               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                              ]).
-
--spec publish_check_sync(kz_proplist()) -> 'ok'.
--spec publish_check_sync(api_binary(), kz_proplist()) -> 'ok'.
-publish_check_sync('undefined', Req) ->
-    publish_check_sync(Req);
-publish_check_sync(MsgId, Req) ->
-    publish_check_sync([{<<"Msg-ID">>, MsgId} | Req]).
-
-publish_check_sync(Req) ->
+    Req = [{<<"Msg-ID">>, MsgId}
+          ,{<<"Realm">>, Realm}
+          ,{<<"Username">>, Username}
+           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+          ]),
     kz_amqp_worker:cast(Req, fun kapi_switch:publish_check_sync/1).
