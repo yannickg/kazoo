@@ -143,7 +143,7 @@ to_in_service(T=#{todo := Ns}, ?NUMBER_STATE_IN_SERVICE) ->
     {Yes, No} = lists:partition(fun is_assigned_to_assignto/1, Ns),
     Ta = knm_numbers:ok(Yes, T),
     Tb = knm_numbers:pipe(T#{todo => No}
-                         ,[fun in_service_from_in_service_authorize/1
+                         ,[fun authorize/1
                           ,fun move_to_in_service_state/1
                           ]),
     knm_numbers:merge_okkos(Ta, Tb);
@@ -178,37 +178,9 @@ to_in_service(T, ?NUMBER_STATE_RESERVED) ->
 to_in_service(T, State) ->
     invalid_state_transition(T, State, ?NUMBER_STATE_IN_SERVICE).
 
--ifdef(TEST).
--define(ACCT_HIERARCHY(AuthBy, AssignTo, _)
-       ,AuthBy =:= ?MASTER_ACCOUNT_ID
-        andalso AssignTo =:= ?RESELLER_ACCOUNT_ID).
--else.
--define(ACCT_HIERARCHY(AuthBy, AssignTo, Bool)
-       ,kz_util:is_in_account_hierarchy(AuthBy, AssignTo, Bool)).
--endif.
-
 -spec authorize(t()) -> t().
 authorize(T) ->
     knm_numbers:do_in_wrap(fun knm_phone_number:is_authorized/1, T).
-
--spec in_service_from_in_service_authorize(kn()) -> kn();
-                                          (t()) -> t().
-in_service_from_in_service_authorize(T=#{todo := Ns, options := Options}) ->
-    AssignTo = knm_number_options:assign_to(Options),
-    AuthBy = knm_number_options:auth_by(Options),
-    Sudo = ?KNM_DEFAULT_AUTH_BY =:= AuthBy,
-    case Sudo
-        orelse ?ACCT_HIERARCHY(AssignTo, AuthBy, 'true')
-        orelse ?ACCT_HIERARCHY(AuthBy, AssignTo, 'false')
-    of
-        false ->
-            Reason = knm_errors:to_json(unauthorized),
-            knm_numbers:ko(Ns, Reason, T);
-        true ->
-            Sudo
-                andalso lager:info("bypassing auth"),
-            knm_numbers:ok(Ns, T)
-    end.
 
 -spec not_assigning_to_self(kn()) -> kn();
                            (t()) -> t().
