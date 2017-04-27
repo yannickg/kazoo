@@ -106,7 +106,7 @@ to_reserved(T0) -> ?TO_STATE2(to_reserved, T0).
 to_reserved(T, ?NUMBER_STATE_RESERVED) ->
     knm_numbers:pipe(T
                     ,[fun not_assigning_to_self/1
-                     ,fun is_auth_by_authorized/1
+                     ,fun authorize/1
                      ,fun update_reserve_history/1
                      ,fun move_to_reserved_state/1
                      ,fun knm_services:activate_phone_number/1
@@ -259,32 +259,6 @@ not_assigning_to_self(Number) ->
         _AssignTo -> Number
     end.
 
--spec is_auth_by_authorized(kn()) -> kn().
-is_auth_by_authorized(T0=#{todo := Ns}) ->
-    F = fun (N, T) ->
-                case knm_number:attempt(fun is_auth_by_authorized/1, [N]) of
-                    {ok, NewN} -> knm_numbers:ok(NewN, T);
-                    {error, R} -> knm_numbers:ko(N, R, T)
-                end
-        end,
-    lists:foldl(F, T0, Ns);
-is_auth_by_authorized(Number) ->
-    PhoneNumber = knm_number:phone_number(Number),
-    AssignedTo = knm_phone_number:assigned_to(PhoneNumber),
-    AuthBy = knm_phone_number:auth_by(PhoneNumber),
-    Sudo = ?KNM_DEFAULT_AUTH_BY =:= AuthBy,
-    case Sudo
-        orelse 'undefined' =:= AssignedTo
-        orelse is_authorized_operation(AssignedTo, AuthBy)
-        orelse is_authorized_operation(AuthBy, AssignedTo)
-    of
-        'true' ->
-            Sudo
-                andalso lager:info("bypassing auth"),
-            Number;
-        'false' -> knm_errors:unauthorized()
-    end.
-
 -spec update_reserve_history(kn()) -> kn().
 update_reserve_history(T0=#{todo := Ns}) ->
     F = fun (N, T) ->
@@ -359,10 +333,6 @@ move_phone_number_to_state(PhoneNumber, ToState, AssignedTo, AssignTo) ->
               ,{fun knm_phone_number:set_state/2, ToState}
               ],
     knm_phone_number:setters(PhoneNumber, Setters).
-
--spec is_authorized_operation(ne_binary(), ne_binary()) -> boolean().
-is_authorized_operation(CheckFor, InAccount) ->
-    kz_util:is_in_account_hierarchy(CheckFor, InAccount).
 
 
 %% @private
