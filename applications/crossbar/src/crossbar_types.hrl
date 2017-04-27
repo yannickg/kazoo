@@ -3,6 +3,8 @@
 
 -define(CATCH_ALL, <<"_">>).
 
+-define(AUTH_ACCOUNT_PLACEHOLDER, <<"{AUTH_ACCOUNT_ID}">>).
+
 -type crossbar_status() :: 'success' | 'error' | 'fatal' | 'halt'.
 -type crossbar_module_result() :: {crossbar_status(), kz_proplist()} |
                                   {crossbar_status(), kz_proplist(), string()} |

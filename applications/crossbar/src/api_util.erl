@@ -600,6 +600,8 @@ parse_path_tokens(_, [<<"configs">>=Mod|T], Events) ->
     [{Mod, T} | Events];
 parse_path_tokens(_, [<<"sup">>=Mod|T], Events) ->
     [{Mod, cb_sup:format_path_tokens(T)} | Events];
+parse_path_tokens(Context, [<<"account">>|T], Events) ->
+    parse_path_tokens(Context, [<<"accounts">>, ?AUTH_ACCOUNT_PLACEHOLDER | T], Events);
 parse_path_tokens(Context, [Mod|T], Events) ->
     case is_cb_module(Context, Mod) of
         'false' -> [];
@@ -751,7 +753,6 @@ prefer_new_context([{'halt', Context1}|_], Req, _) ->
     lager:debug("authn halted"),
     ?MODULE:halt(Req, Context1).
 
-
 -spec get_auth_token(cowboy_req:req(), cb_context:context()) ->
                             {cowboy_req:req(), cb_context:context()}.
 get_auth_token(Req0, Context) ->
@@ -761,17 +762,11 @@ get_auth_token(Req0, Context) ->
                 'undefined' -> get_authorization_token(Req1, Context);
                 Token ->
                     lager:debug("using auth token found"),
-                    {Req1, cb_context:setters(Context, [{fun cb_context:set_auth_token/2, Token}
-                                                       ,{fun cb_context:set_auth_token_type/2, 'x-auth-token'}
-                                                       ]
-                                             )}
+                    {Req1, set_auth_context(Context, Token, 'x-auth-token')}
             end;
         {Token, Req1} ->
             lager:debug("using auth token from header"),
-            {Req1, cb_context:setters(Context, [{fun cb_context:set_auth_token/2, Token}
-                                               ,{fun cb_context:set_auth_token_type/2, 'x-auth-token'}
-                                               ]
-                                     )}
+            {Req1, set_auth_context(Context, Token, 'x-auth-token')}
     end.
 
 -spec get_authorization_token(cowboy_req:req(), cb_context:context()) ->
@@ -792,14 +787,20 @@ get_authorization_token(Req0, Context) ->
             {Req1, set_auth_context(Context, Authorization)}
     end.
 
--spec set_auth_context(cb_context:context(), ne_binary() | {ne_binary(), atom()}) -> cb_context:context().
+-spec set_auth_context(cb_context:context(), ne_binary() | {ne_binary(), atom()}) ->
+                              cb_context:context().
+-spec set_auth_context(cb_context:context(), ne_binary(), atom()) ->
+                              cb_context:context().
 set_auth_context(Context, {Token, TokenType}) ->
+    set_auth_context(Context, Token, TokenType);
+set_auth_context(Context, Authorization) ->
+    set_auth_context(Context, get_authorization_token_type(Authorization)).
+
+set_auth_context(Context, Token, TokenType) ->
     cb_context:setters(Context, [{fun cb_context:set_auth_token/2, Token}
                                 ,{fun cb_context:set_auth_token_type/2, TokenType}
                                 ]
-                      );
-set_auth_context(Context, Authorization) ->
-    set_auth_context(Context, get_authorization_token_type(Authorization)).
+                      ).
 
 -spec get_authorization_token_type(ne_binary()) -> {ne_binary(), atom()}.
 get_authorization_token_type(<<"Basic ", Token/binary>>) -> {Token, 'basic'};

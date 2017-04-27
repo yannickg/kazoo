@@ -211,8 +211,35 @@ check_descendants(Context, JObj, AccountId, AsAccountId, AsOwnerId) ->
 
 -spec set_auth_doc(cb_context:context(), kz_json:object()) -> cb_context:context().
 set_auth_doc(Context, JObj) ->
-    cb_context:setters(Context, [{fun cb_context:set_auth_doc/2, JObj}
-                                ,{fun cb_context:set_auth_account_id/2
-                                 ,kz_json:get_ne_value(<<"account_id">>, JObj)
-                                 }
-                                ]).
+    cb_context:setters(maybe_fix_account_alias(Context, JObj)
+                      ,[{fun cb_context:set_auth_doc/2, JObj}
+                       ,{fun cb_context:set_auth_account_id/2
+                        ,kz_json:get_ne_value(<<"account_id">>, JObj)
+                        }
+                       ]).
+
+-spec maybe_fix_account_alias(cb_context:context(), kz_json:object()) ->
+                                     cb_context:context().
+-spec maybe_fix_account_alias(cb_context:context(), kz_json:object(), req_nouns()) ->
+                                     cb_context:context().
+maybe_fix_account_alias(Context, JObj) ->
+    maybe_fix_account_alias(Context, JObj, cb_context:req_nouns(Context)).
+
+maybe_fix_account_alias(Context, JObj, ReqNouns) ->
+    AccountId = kz_json:get_ne_value(<<"account_id">>, JObj),
+
+    lager:debug("req nouns: ~p", [ReqNouns]),
+    case props:get_value(<<"accounts">>, ReqNouns) of
+        [?AUTH_ACCOUNT_PLACEHOLDER] ->
+            lager:info("fixing request with auth account"),
+            cb_context:set_req_nouns(Context
+                                    ,props:replace_value(<<"accounts">>, [AccountId], ReqNouns)
+                                    );
+        [?AUTH_ACCOUNT_PLACEHOLDER, PathToken] ->
+            lager:info("fixing request with auth account"),
+            cb_context:set_req_nouns(Context
+                                    ,props:replace_value(<<"accounts">>, [AccountId, PathToken], ReqNouns)
+                                    );
+        _PathTokens ->
+            Context
+    end.
